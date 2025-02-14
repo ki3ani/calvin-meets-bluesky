@@ -98,7 +98,9 @@ class ComicService:
     async def get_random_unposted_comic(self, db: Session):
         """Get a random unposted comic from the database"""
         try:
-            unposted_comics = db.query(Comic).filter(Comic.posted == False).all() # noqa
+            unposted_comics = (
+                db.query(Comic).filter(Comic.posted == False).all()  # noqa
+            )
             if not unposted_comics:
                 logger.info("No unposted comics available")
                 return None

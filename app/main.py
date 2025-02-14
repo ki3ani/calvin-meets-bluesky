@@ -74,7 +74,7 @@ async def get_status(db: Session = Depends(get_db)):
     try:
         total_comics = db.query(models.Comic).count()
         posted_comics = (
-            db.query(models.Comic).filter(models.Comic.posted == True).count() # noqa
+            db.query(models.Comic).filter(models.Comic.posted == True).count()  # noqa
         )
         return {
             "total_comics": total_comics,
