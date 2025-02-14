@@ -1,15 +1,19 @@
-from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class EngagementBase(BaseModel):
     post_id: int
     likes: int = 0
     reposts: int = 0
     replies: int = 0
-    
+
+
 class EngagementCreate(EngagementBase):
     pass
+
 
 class Engagement(EngagementBase):
     id: int
@@ -17,6 +21,7 @@ class Engagement(EngagementBase):
 
     class Config:
         orm_mode = True
+
 
 class Analytics(BaseModel):
     total_posts: int

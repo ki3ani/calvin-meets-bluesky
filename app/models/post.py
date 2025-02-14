@@ -1,18 +1,23 @@
-from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class PostBase(BaseModel):
     comic_id: int
     post_text: str
-    
+
+
 class PostCreate(PostBase):
     pass
+
 
 class PostUpdate(BaseModel):
     post_text: Optional[str]
     likes: Optional[int]
     reposts: Optional[int]
+
 
 class Post(PostBase):
     id: int

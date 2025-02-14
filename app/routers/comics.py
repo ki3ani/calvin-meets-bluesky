@@ -1,21 +1,23 @@
+import logging
+from datetime import datetime
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime
+
 from app.database.session import get_db
-from app.services.comic_service import ComicService
-from app.models.comic import Comic, ComicCreate
-import logging
+from app.models.comic import Comic
 
 router = APIRouter(prefix="/comics", tags=["comics"])
 logger = logging.getLogger(__name__)
+
 
 @router.get("/", response_model=List[Comic])
 async def get_comics(
     skip: int = 0,
     limit: int = 100,
     posted: Optional[bool] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get list of comics"""
     try:
@@ -26,6 +28,7 @@ async def get_comics(
     except Exception as e:
         logger.error(f"Error getting comics: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/{comic_id}", response_model=Comic)
 async def get_comic(comic_id: int, db: Session = Depends(get_db)):
@@ -38,6 +41,7 @@ async def get_comic(comic_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error getting comic {comic_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/date/{date}")
 async def get_comic_by_date(date: str, db: Session = Depends(get_db)):
