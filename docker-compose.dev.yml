@@ -8,21 +8,18 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Mount the entire project directory for development
       - .:/app
-      # Exclude virtualenv directory
       - /app/.venv
-      # Keep persistent volumes for data
       - calvin_data:/app/comic_images
       - calvin_db:/app/data
     env_file:
       - .env
     environment:
-      - DEBUG=1
+      - DEBUG=true
+      - USE_S3_STORAGE=false  # Use local storage in development by default
       - PYTHONPATH=/app
     restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    # Enable debugger
     tty: true
     stdin_open: true
 
