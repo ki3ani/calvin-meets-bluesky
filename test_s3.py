@@ -55,7 +55,7 @@ async def test_s3_storage():
         if storage_path and access_url:
             print("\n✓ File uploaded successfully!")
             print(f"Storage path: {storage_path}")
-            print(f"\nAccess URL (valid for 1 hour):") # noqa
+            print(f"\nAccess URL (valid for 1 hour):")  # noqa
             print("=" * 80)
             print(access_url)
             print("=" * 80)
@@ -85,10 +85,10 @@ async def test_s3_storage():
                 await list_bucket_contents(s3_client, os.getenv("S3_BUCKET_NAME"))
             else:
                 print(
-                    "\nFile will remain in the bucket. You can access it at the URL above for the next hour." # noqa
+                    "\nFile will remain in the bucket. You can access it at the URL above for the next hour."  # noqa
                 )
                 print(
-                    "To delete it later, you can run the script again and use the delete option." # noqa
+                    "To delete it later, you can run the script again and use the delete option."  # noqa
                 )
         else:
             print("✗ File upload failed!")

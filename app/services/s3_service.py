@@ -83,7 +83,7 @@ class S3Service:
                 ExpiresIn=expires_in,  # URL expiration time in seconds
             )
             print(
-                f"✓ Generated pre-signed URL for {object_key} (valid for {expires_in/3600:.1f} hours)" # noqa
+                f"✓ Generated pre-signed URL for {object_key} (valid for {expires_in/3600:.1f} hours)"  # noqa
             )
             return url
         except Exception as e:
