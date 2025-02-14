@@ -1,5 +1,4 @@
-from pydantic import BaseSettings
-
+from pydantic_settings import BaseSettings
 
 class TestSettings(BaseSettings):
     # Database settings
