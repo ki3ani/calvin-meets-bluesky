@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database.session import get_db
@@ -22,11 +23,18 @@ comic_service = ComicService()
 bluesky_service = BlueskyService()
 
 @app.on_event("startup")
-async def startup_event(background_tasks: BackgroundTasks):
+async def startup_event():
     """Start the scheduler on startup"""
-    db = next(get_db())
-    scheduler = SchedulerService(db)
-    background_tasks.add_task(scheduler.run_scheduler)
+    try:
+        # Create database tables if they don't exist
+        models.Base.metadata.create_all(bind=engine)
+        
+        # Initialize scheduler
+        db = next(get_db())
+        scheduler = SchedulerService(db)
+        asyncio.create_task(scheduler.run_scheduler())
+    except Exception as e:
+        logger.error(f"Error starting scheduler: {str(e)}")
 
 @app.get("/")
 async def read_root():

@@ -1,10 +1,17 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.config import get_settings
+from sqlalchemy.pool import StaticPool
+import os
 
-settings = get_settings()
+SQLALCHEMY_DATABASE_URL = "sqlite:///./calvin_bot.db"
 
-engine = create_engine(settings.DATABASE_URL)
+# Create engine with check_same_thread=False to allow multiple threads
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, 
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
