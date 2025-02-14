@@ -51,5 +51,6 @@ def db_session(test_engine):
 def client():
     # Mock settings for the duration of the tests
     with mock.patch("app.config.get_settings", return_value=test_settings):
+        # Remove follow_redirects parameter
         with TestClient(app) as c:
             yield c

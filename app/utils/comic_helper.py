@@ -90,4 +90,4 @@ class ComicHelper:
         ]
 
         caption_pool = sunday_captions if is_sunday else base_captions
-        return random.choice(caption_pool)
+        return random.choice(caption_pool)  # nosec

@@ -38,7 +38,7 @@ class ComicService:
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"  # noqa
             }
 
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
 
             soup = BeautifulSoup(response.text, "html.parser")
@@ -83,7 +83,7 @@ class ComicService:
                 headers = {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"  # noqa
                 }
-                response = requests.get(image_url, headers=headers)
+                response = requests.get(image_url, headers=headers, timeout=30)
                 response.raise_for_status()
 
                 with open(file_path, "wb") as f:
@@ -104,7 +104,7 @@ class ComicService:
             if not unposted_comics:
                 logger.info("No unposted comics available")
                 return None
-            return random.choice(unposted_comics)
+            return random.choice(unposted_comics)  # nosec
         except Exception as e:
             logger.error(f"Error getting random unposted comic: {str(e)}")
             raise

@@ -16,3 +16,7 @@ use_parentheses = true
 ensure_newline_before_comments = true
 line_length = 88
 skip = [".git", ".pytest_cache", ".venv", "build", "dist"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"

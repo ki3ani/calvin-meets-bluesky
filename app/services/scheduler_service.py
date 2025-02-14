@@ -33,7 +33,7 @@ class SchedulerService:
         total_days = (self.end_date - self.start_date).days
 
         for _ in range(count):
-            random_days = random.randint(0, total_days)
+            random_days = random.randint(0, total_days)  # nosec
             random_date = self.start_date + timedelta(days=random_days)
             dates.append(random_date)
 
@@ -71,7 +71,7 @@ class SchedulerService:
 
             # Create post text
             captions = self.post_formatter.create_random_captions()
-            post_text = f"{random.choice(captions)}\n\n"
+            post_text = f"{random.choice(captions)}\n\n"  # nosec
             post_text += self.post_formatter.create_post_text(
                 comic.strip_date, comic.title
             )
