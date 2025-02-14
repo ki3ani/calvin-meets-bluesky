@@ -38,19 +38,15 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        PYTHONWARNINGS: "ignore::DeprecationWarning,ignore::PytestDeprecationWarning,ignore::PytestUnhandledCoroutineWarning"
       run: |
-        # Create pytest.ini if it doesn't exist
-        echo "[pytest]" > pytest.ini
-        echo "asyncio_mode = strict" >> pytest.ini
-        echo "asyncio_default_fixture_loop_scope = function" >> pytest.ini
-        echo "filterwarnings =" >> pytest.ini
-        echo "    ignore::DeprecationWarning" >> pytest.ini
-        echo "    ignore::PytestDeprecationWarning" >> pytest.ini
-        echo "    ignore::PytestUnhandledCoroutineWarning" >> pytest.ini
+        # Create pyproject.toml for pytest configuration
+        echo "[tool.pytest.ini_options]" > pyproject.toml
+        echo "asyncio_mode = \"strict\"" >> pyproject.toml
+        echo "testpaths = [\"tests\"]" >> pyproject.toml
+        echo "addopts = \"-v --tb=short\"" >> pyproject.toml
         
         # Run tests
-        pytest -v --junitxml=test-results.xml || true
+        python -m pytest --junitxml=test-results.xml
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -58,6 +54,7 @@ jobs:
       with:
         name: test-results
         path: test-results.xml
+        if-no-files-found: warn
 
   security:
     runs-on: ubuntu-latest
@@ -77,12 +74,7 @@ jobs:
 
     - name: Run security scan
       run: |
-        # Create .bandit file to ignore specific warnings
-        echo "[bandit]" > .bandit
-        echo "skips = B311" >> .bandit
-        
-        # Run security scans with customized settings
-        bandit -r app/ -ll || true  # -ll means only report high and medium severity issues
+        bandit -r app/ -ll || true
         safety check --full-report || true
 
     - name: Upload security scan results
@@ -93,3 +85,4 @@ jobs:
         path: |
           bandit-report.json
           safety-report.txt
+        if-no-files-found: warn

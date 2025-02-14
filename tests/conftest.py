@@ -14,7 +14,6 @@ project_root = str(Path(__file__).parent.parent)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-
 # Mock the settings before importing app
 test_settings = TestSettings()
 with mock.patch("app.config.get_settings", return_value=test_settings):
@@ -48,9 +47,10 @@ def db_session(test_engine):
 
 
 @pytest.fixture(scope="module")
-def client():
+def client(test_engine):
     # Mock settings for the duration of the tests
     with mock.patch("app.config.get_settings", return_value=test_settings):
-        # Remove follow_redirects parameter
-        with TestClient(app) as c:
-            yield c
+        with TestClient(app) as client:
+            Base.metadata.create_all(bind=test_engine)
+            yield client
+            Base.metadata.drop_all(bind=test_engine)
