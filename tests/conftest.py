@@ -48,9 +48,7 @@ def db_session(test_engine):
 
 @pytest.fixture(scope="module")
 def client(test_engine):
-    # Mock settings for the duration of the tests
-    with mock.patch("app.config.get_settings", return_value=test_settings):
-        with TestClient(app) as client:
-            Base.metadata.create_all(bind=test_engine)
-            yield client
-            Base.metadata.drop_all(bind=test_engine)
+    Base.metadata.create_all(bind=test_engine)
+    test_client = TestClient(app)
+    yield test_client
+    Base.metadata.drop_all(bind=test_engine)
