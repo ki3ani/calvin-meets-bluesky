@@ -2,27 +2,39 @@ version: '3.8'
 
 services:
   app:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
+    container_name: calvin_bot
     ports:
       - "8000:8000"
     volumes:
-      - calvin_data:/app/comic_images
       - calvin_db:/app/data
+      - ./logs:/app/logs
     env_file:
       - .env
     environment:
       - DEBUG=false
       - USE_S3_STORAGE=true
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_REGION}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - BLUESKY_USERNAME=${BLUESKY_USERNAME}
+      - BLUESKY_PASSWORD=${BLUESKY_PASSWORD}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
-  calvin_data:
   calvin_db:

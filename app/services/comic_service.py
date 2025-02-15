@@ -1,26 +1,22 @@
 import logging
-import os
 import random
 from datetime import datetime
+from tempfile import NamedTemporaryFile
 
 import requests
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.database.models import Comic
+from app.services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 
 
 class ComicService:
     def __init__(self):
-        self.comic_dir = "comic_images"
         self.base_url = "https://www.gocomics.com/calvinandhobbes"
-
-    def _ensure_comic_dir(self):
-        """Ensure the comic images directory exists"""
-        if not os.path.exists(self.comic_dir):
-            os.makedirs(self.comic_dir)
+        self.storage_service = StorageService()
 
     async def fetch_calvin_and_hobbes(self, date: datetime = None):
         """Fetch Calvin and Hobbes comic for a specific date"""
@@ -73,24 +69,31 @@ class ComicService:
             raise
 
     async def download_image(self, image_url: str, comic_date: datetime):
-        """Download and save comic image"""
+        """Download and save comic image using storage service"""
         try:
-            self._ensure_comic_dir()
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"  # noqa
+            }
+            response = requests.get(image_url, headers=headers, timeout=30)
+            response.raise_for_status()
+
+            # Create a temporary file to store the image
+            with NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+                temp_file.write(response.content)
+                temp_path = temp_file.name
+
+            # Use storage service to save the file
             file_name = f"calvin_{comic_date.strftime('%Y%m%d')}.png"
-            file_path = os.path.join(self.comic_dir, file_name)
+            storage_path, access_url = await self.storage_service.save_file(
+                temp_path, file_name
+            )
 
-            if not os.path.exists(file_path):
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"  # noqa
-                }
-                response = requests.get(image_url, headers=headers, timeout=30)
-                response.raise_for_status()
+            if storage_path:
+                logger.info(f"Saved image to storage: {storage_path}")
+                return storage_path
+            else:
+                raise Exception("Failed to save image to storage")
 
-                with open(file_path, "wb") as f:
-                    f.write(response.content)
-                logger.info(f"Downloaded image to {file_path}")
-
-            return file_path
         except Exception as e:
             logger.error(f"Error downloading image: {str(e)}")
             raise
@@ -121,8 +124,8 @@ class ComicService:
                 logger.info(f"Comic for {comic_data['date']} already exists")
                 return existing_comic
 
-            # Download the image
-            local_path = await self.download_image(
+            # Download and save the image using storage service
+            storage_path = await self.download_image(
                 comic_data["image_url"], comic_data["date"]
             )
 
@@ -131,7 +134,7 @@ class ComicService:
                 strip_date=comic_data["date"],
                 url=comic_data["image_url"],
                 title=comic_data["title"],
-                local_path=local_path,
+                local_path=storage_path,
                 posted=False,
             )
 
