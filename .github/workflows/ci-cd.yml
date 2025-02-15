@@ -8,7 +8,14 @@ on:
 
 env:
   AWS_REGION: us-east-1
- 
+  S3_BUCKET: calvobit
+  POSTER_FUNCTION: calvin-bot-poster
+  FETCHER_FUNCTION: calvin-bot-fetcher
+
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,7 +25,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.11'
         cache: 'pip'
     
     - name: Install dependencies
@@ -37,24 +44,10 @@ jobs:
         BLUESKY_PASSWORD: ${{ secrets.BLUESKY_PASSWORD }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+        S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+        USE_S3_STORAGE: false
       run: |
-        # Create pyproject.toml for pytest configuration
-        echo "[tool.pytest.ini_options]" > pyproject.toml
-        echo "asyncio_mode = \"strict\"" >> pyproject.toml
-        echo "testpaths = [\"tests\"]" >> pyproject.toml
-        echo "addopts = \"-v --tb=short\"" >> pyproject.toml
-        
-        # Run tests
-        python -m pytest --junitxml=test-results.xml
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: test-results.xml
-        if-no-files-found: warn
+        python -m pytest
 
   security:
     runs-on: ubuntu-latest
@@ -64,7 +57,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.11'
         cache: 'pip'
 
     - name: Install security tools
@@ -77,12 +70,55 @@ jobs:
         bandit -r app/ -ll || true
         safety check --full-report || true
 
-    - name: Upload security scan results
-      uses: actions/upload-artifact@v4
-      if: always()
+  deploy:
+    runs-on: ubuntu-22.04
+    needs: [test, security]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
       with:
-        name: security-scan-results
-        path: |
-          bandit-report.json
-          safety-report.txt
-        if-no-files-found: warn
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Verify AWS Identity
+      run: aws sts get-caller-identity
+
+    - name: Check AWS CLI Installation
+      run: |
+        if command -v aws &> /dev/null; then
+          echo "AWS_CLI_EXISTS=true" >> $GITHUB_ENV
+        else
+          echo "AWS_CLI_EXISTS=false" >> $GITHUB_ENV
+        fi
+
+    - name: Install or Update AWS CLI
+      run: |
+        if [[ "$AWS_CLI_EXISTS" == "false" ]]; then
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+        else
+          echo "AWS CLI is already installed, skipping update."
+        fi
+
+    - name: Verify AWS CLI Version
+      run: aws --version
+
+    - name: Make build script executable
+      run: chmod +x build_lambda.sh
+
+    - name: Build and package Lambda functions (Uploads to S3)
+      run: ./build_lambda.sh
+
+    - name: Deploy calvin-bot-poster Lambda function
+      run: |
+        aws lambda update-function-code --function-name $POSTER_FUNCTION \
+          --s3-bucket $S3_BUCKET --s3-key lambda/calvin-bot.zip
+
+    - name: Deploy calvin-bot-fetcher Lambda function
+      run: |
+        aws lambda update-function-code --function-name $FETCHER_FUNCTION \
+          --s3-bucket $S3_BUCKET --s3-key lambda/calvin-bot.zip
