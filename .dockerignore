@@ -12,3 +12,49 @@ build
 .venv
 comic_images/*
 *.db
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache
+.mypy_cache
+.env
+.venv
+venv/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Project specific
+comic_images/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.db
+data/
+logs/
+tests/
+deployment/
+*.pem
+test-results.xml

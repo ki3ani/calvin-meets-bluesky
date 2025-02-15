@@ -47,14 +47,31 @@ class StorageService:
 
             return str(local_path), str(local_path)
 
+    async def get_file_content(self, storage_path: str) -> Optional[bytes]:
+        """Get file content from storage"""
+        print(f"Getting file content for path: {storage_path}")
+        if self.settings.USE_S3_STORAGE and storage_path.startswith("s3://"):
+            object_name = storage_path.split("/", 3)[-1]
+            print(f"Extracted S3 object name: {object_name}")
+            content = self.s3_service.get_file_content(object_name)
+            if content is None:
+                print(f"Failed to get content from S3 for {object_name}")
+            return content
+        else:
+            try:
+                with open(storage_path, "rb") as f:
+                    return f.read()
+            except Exception as e:
+                print(f"Error reading local file: {e}")
+                return None
+
     async def get_file_url(self, storage_path: str) -> str:
         """Get the URL for a file"""
         if self.settings.USE_S3_STORAGE and storage_path.startswith("s3://"):
-            # Extract the object name from the s3:// URL
             object_name = storage_path.split("/", 3)[-1]
             return self.s3_service.get_file_url(object_name)
         else:
-            return storage_path  # For local storage, return the local path
+            return storage_path
 
     async def delete_file(self, storage_path: str) -> bool:
         """Delete a file from storage"""

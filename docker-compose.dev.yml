@@ -10,16 +10,23 @@ services:
     volumes:
       - .:/app
       - /app/.venv
-      - calvin_data:/app/comic_images
+      - calvin_data:/app/comic_images  # Keep local storage for development
       - calvin_db:/app/data
+      - ./logs:/app/logs
     env_file:
       - .env
     environment:
       - DEBUG=true
-      - USE_S3_STORAGE=false  # Use local storage in development by default
+      - USE_S3_STORAGE=false  # Use local storage in development
       - PYTHONPATH=/app
     restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/comics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     tty: true
     stdin_open: true
 

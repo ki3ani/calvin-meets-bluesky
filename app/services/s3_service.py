@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import boto3
 import magic
@@ -27,6 +28,19 @@ class S3Service:
         if object_name.startswith("s3://"):
             return object_name.split("/", 3)[-1]
         return object_name
+
+    def get_file_content(self, object_name: str) -> Optional[bytes]:
+        """Get the content of a file from S3"""
+        try:
+            object_key = self._get_object_key(object_name)
+            print(f"Getting file content from S3: {self.bucket_name}/{object_key}")
+            response = self.s3_client.get_object(
+                Bucket=self.bucket_name, Key=object_key
+            )
+            return response["Body"].read()
+        except ClientError as e:
+            print(f"Error getting file content from S3: {e}")
+            return None
 
     def upload_file(self, file_path: str, object_name: str = None) -> bool:
         """Upload a file to S3 bucket"""
@@ -89,6 +103,26 @@ class S3Service:
         except Exception as e:
             print(f"Error generating pre-signed URL: {e}")
             return None
+
+    def save_content_to_file(self, content: bytes, object_name: str) -> bool:
+        """Save content directly to S3"""
+        try:
+            # Determine content type from content
+            mime = magic.Magic(mime=True)
+            content_type = mime.from_buffer(content)
+
+            print(f"Saving content to S3: {self.bucket_name}/{object_name}")
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=object_name,
+                Body=content,
+                ContentType=content_type,
+                CacheControl="max-age=31536000",  # 1 year cache
+            )
+            return True
+        except ClientError as e:
+            print(f"Error saving content to S3: {e}")
+            return False
 
     def delete_file(self, object_name: str) -> bool:
         """Delete a file from S3 bucket"""
