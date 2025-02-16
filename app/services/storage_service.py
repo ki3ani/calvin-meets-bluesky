@@ -13,12 +13,10 @@ class StorageService:
         if self.settings.USE_S3_STORAGE:
             self.s3_service = S3Service(
                 bucket_name=self.settings.S3_BUCKET_NAME,
-                aws_access_key_id=self.settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=self.settings.AWS_SECRET_ACCESS_KEY,
                 region_name=self.settings.AWS_REGION,
             )
 
-    async def save_file(
+    def save_file(
         self, file_path: str, destination_path: Optional[str] = None
     ) -> Tuple[str, str]:
         """
@@ -47,16 +45,27 @@ class StorageService:
 
             return str(local_path), str(local_path)
 
-    async def get_file_url(self, storage_path: str) -> str:
+    def get_file_content(self, storage_path: str) -> Optional[bytes]:
+        """Get file content from storage"""
+        if self.settings.USE_S3_STORAGE and storage_path.startswith("s3://"):
+            return self.s3_service.get_file_content(storage_path)
+        else:
+            try:
+                with open(storage_path, "rb") as f:
+                    return f.read()
+            except Exception as e:
+                print(f"Error reading local file: {e}")
+                return None
+
+    def get_file_url(self, storage_path: str) -> str:
         """Get the URL for a file"""
         if self.settings.USE_S3_STORAGE and storage_path.startswith("s3://"):
-            # Extract the object name from the s3:// URL
             object_name = storage_path.split("/", 3)[-1]
             return self.s3_service.get_file_url(object_name)
         else:
-            return storage_path  # For local storage, return the local path
+            return storage_path
 
-    async def delete_file(self, storage_path: str) -> bool:
+    def delete_file(self, storage_path: str) -> bool:
         """Delete a file from storage"""
         if self.settings.USE_S3_STORAGE and storage_path.startswith("s3://"):
             object_name = storage_path.split("/", 3)[-1]

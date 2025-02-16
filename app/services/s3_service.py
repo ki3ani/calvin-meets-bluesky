@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import boto3
 import magic
@@ -9,24 +10,40 @@ class S3Service:
     def __init__(
         self,
         bucket_name: str,
-        aws_access_key_id: str = None,
-        aws_secret_access_key: str = None,
         region_name: str = None,
     ):
         self.bucket_name = bucket_name
         self.region_name = region_name or "us-east-1"
-        self.s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-            region_name=self.region_name,
-        )
+
+        # Let boto3 use IAM role by not providing credentials
+        self.s3_client = boto3.client("s3", region_name=self.region_name)
+
+        # Debug IAM role
+        try:
+            sts = boto3.client("sts")
+            identity = sts.get_caller_identity()
+            print(f"Using IAM identity: {identity['Arn']}")
+        except Exception as e:
+            print(f"Error getting IAM identity: {e}")
 
     def _get_object_key(self, object_name: str) -> str:
         """Extract the object key from a full path or S3 URI"""
         if object_name.startswith("s3://"):
             return object_name.split("/", 3)[-1]
         return object_name
+
+    def get_file_content(self, object_name: str) -> Optional[bytes]:
+        """Get the content of a file from S3"""
+        try:
+            object_key = self._get_object_key(object_name)
+            print(f"Getting file content from S3: {self.bucket_name}/{object_key}")
+            response = self.s3_client.get_object(
+                Bucket=self.bucket_name, Key=object_key
+            )
+            return response["Body"].read()
+        except ClientError as e:
+            print(f"Error getting file content from S3: {e}")
+            return None
 
     def upload_file(self, file_path: str, object_name: str = None) -> bool:
         """Upload a file to S3 bucket"""
@@ -89,6 +106,26 @@ class S3Service:
         except Exception as e:
             print(f"Error generating pre-signed URL: {e}")
             return None
+
+    def save_content_to_file(self, content: bytes, object_name: str) -> bool:
+        """Save content directly to S3"""
+        try:
+            # Determine content type from content
+            mime = magic.Magic(mime=True)
+            content_type = mime.from_buffer(content)
+
+            print(f"Saving content to S3: {self.bucket_name}/{object_name}")
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=object_name,
+                Body=content,
+                ContentType=content_type,
+                CacheControl="max-age=31536000",  # 1 year cache
+            )
+            return True
+        except ClientError as e:
+            print(f"Error saving content to S3: {e}")
+            return False
 
     def delete_file(self, object_name: str) -> bool:
         """Delete a file from S3 bucket"""
