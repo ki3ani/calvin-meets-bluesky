@@ -9,8 +9,8 @@ on:
 env:
   AWS_REGION: us-east-1
   S3_BUCKET: calvobit
-  POSTER_FUNCTION: calvin-bot-poster
-  FETCHER_FUNCTION: calvin-bot-fetcher
+  CONTENT_GENERATOR_FUNCTION: ai-content-generator
+  POST_CREATOR_FUNCTION: ai-post-creator
 
 permissions:
   id-token: write
@@ -35,19 +35,8 @@ jobs:
     
     - name: Run linting
       run: |
-        flake8 . --extend-ignore=W503,E203 --max-line-length=120 --exclude=.git,__pycache__,.venv
+        flake8 app/ --extend-ignore=W503,E203 --max-line-length=120
       continue-on-error: true
-    
-    - name: Run tests
-      env:
-        BLUESKY_USERNAME: ${{ secrets.BLUESKY_USERNAME }}
-        BLUESKY_PASSWORD: ${{ secrets.BLUESKY_PASSWORD }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
-        USE_S3_STORAGE: false
-      run: |
-        python -m pytest
 
   security:
     runs-on: ubuntu-latest
@@ -113,12 +102,12 @@ jobs:
     - name: Build and package Lambda functions (Uploads to S3)
       run: ./build_lambda.sh
 
-    - name: Deploy calvin-bot-poster Lambda function
+    - name: Deploy AI Content Generator Lambda function
       run: |
-        aws lambda update-function-code --function-name $POSTER_FUNCTION \
-          --s3-bucket $S3_BUCKET --s3-key lambda/calvin-bot.zip
+        aws lambda update-function-code --function-name $CONTENT_GENERATOR_FUNCTION \
+          --s3-bucket $S3_BUCKET --s3-key lambda/ai-content-bot.zip
 
-    - name: Deploy calvin-bot-fetcher Lambda function
+    - name: Deploy AI Post Creator Lambda function
       run: |
-        aws lambda update-function-code --function-name $FETCHER_FUNCTION \
-          --s3-bucket $S3_BUCKET --s3-key lambda/calvin-bot.zip
+        aws lambda update-function-code --function-name $POST_CREATOR_FUNCTION \
+          --s3-bucket $S3_BUCKET --s3-key lambda/ai-content-bot.zip

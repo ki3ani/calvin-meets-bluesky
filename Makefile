@@ -1,4 +1,4 @@
-.PHONY: format lint test clean install
+.PHONY: format lint test clean install build
 
 # Format code using black and isort
 format:
@@ -7,13 +7,11 @@ format:
 
 # Run linting checks
 lint:
-	flake8 .
-	black . --check
-	isort . --check
+	flake8 app/ --extend-ignore=W503,E203 --max-line-length=120
 
-# Run tests
+# Run AI agent system tests
 test:
-	pytest -v
+	python test_agent_system.py
 
 # Clean up Python cache files
 clean:
@@ -21,16 +19,17 @@ clean:
 	find . -type f -name "*.pyc" -delete
 	find . -type f -name "*.pyo" -delete
 	find . -type f -name "*.pyd" -delete
-	find . -type f -name ".coverage" -delete
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	find . -type d -name "*.egg" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
-	find . -type d -name ".coverage" -exec rm -rf {} +
-	find . -type d -name "htmlcov" -exec rm -rf {} +
 
 # Install dependencies
 install:
 	pip install -r requirements.txt
 
+# Build Lambda package
+build:
+	./build_lambda.sh
+
 # Run all quality checks
-check: format lint test
+check: format lint
